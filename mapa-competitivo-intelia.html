@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Competitivo — Intelia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1417;
+    --panel:#161D22;
+    --panel-2:#1C242A;
+    --border:#28323A;
+    --text:#ECEAE3;
+    --text-dim:#93A0A8;
+    --text-faint:#5D6A72;
+    --mon:#38C6A8;
+    --mon-dim:rgba(56,198,168,.14);
+    --auto:#E39A4E;
+    --auto-dim:rgba(227,154,78,.14);
+    --seg:#7B93F0;
+    --seg-dim:rgba(123,147,240,.14);
+    --gold:#E8C167;
+    --danger:#D9704F;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;}
+
+  /* ---------- shell ---------- */
+  .shell{display:flex;min-height:100vh;}
+  .side{
+    width:230px;
+    flex-shrink:0;
+    border-right:1px solid var(--border);
+    padding:28px 18px;
+    position:sticky;top:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+  }
+  .brand{padding-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:18px;}
+  .brand .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;}
+  .brand h1{font-size:21px;color:var(--text);margin-top:6px;}
+  nav{display:flex;flex-direction:column;gap:2px;}
+  nav button{
+    all:unset;
+    cursor:pointer;
+    padding:9px 10px;
+    border-radius:var(--radius);
+    font-size:13.5px;
+    color:var(--text-dim);
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  nav button .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);}
+  nav button:hover{background:var(--panel);color:var(--text);}
+  nav button.active{background:var(--panel-2);color:var(--text);border-left:2px solid var(--gold);padding-left:8px;}
+  .side-foot{margin-top:auto;font-size:11.5px;color:var(--text-faint);line-height:1.5;}
+
+  .main{flex:1;padding:40px 48px 90px;max-width:1180px;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .35s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  .page-head{margin-bottom:30px;}
+  .page-head .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;}
+  .page-head h2{font-size:30px;margin-top:6px;color:var(--text);}
+  .page-head p{color:var(--text-dim);max-width:640px;margin-top:10px;font-size:14.5px;}
+
+  /* ---------- chips / filters ---------- */
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;}
+  .chip{
+    border:1px solid var(--border);
+    padding:6px 13px;
+    border-radius:20px;
+    font-size:12.5px;
+    cursor:pointer;
+    color:var(--text-dim);
+    background:transparent;
+    display:flex;align-items:center;gap:7px;
+  }
+  .chip .dot{width:7px;height:7px;border-radius:50%;}
+  .chip.active{color:var(--text);border-color:var(--text-faint);background:var(--panel-2);}
+
+  /* ---------- overview stat grid ---------- */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:34px;}
+  .stat{background:var(--panel);padding:20px;}
+  .stat .num{font-family:'IBM Plex Mono',monospace;font-size:30px;color:var(--gold);}
+  .stat .lbl{font-size:12px;color:var(--text-dim);margin-top:6px;}
+
+  .vertical-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:36px;}
+  .vcard{border:1px solid var(--border);padding:20px;border-radius:var(--radius);background:var(--panel);}
+  .vcard .bar{height:3px;width:38px;margin-bottom:14px;}
+  .vcard h3{font-size:17px;color:var(--text);}
+  .vcard .sub{font-size:12px;color:var(--text-faint);margin:4px 0 14px;font-family:'IBM Plex Mono',monospace;}
+  .vcard ul{margin:0;padding-left:0;list-style:none;font-size:13px;color:var(--text-dim);display:flex;flex-direction:column;gap:6px;}
+  .vcard li b{color:var(--text);font-weight:600;}
+
+  section.block{margin-bottom:40px;}
+  section.block h3.h{font-size:18px;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+
+  /* ---------- table ---------- */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:920px;}
+  thead th{
+    text-align:left;padding:11px 14px;background:var(--panel-2);
+    color:var(--text-faint);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+    border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  thead th:hover{color:var(--text);}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:top;}
+  tbody tr:hover{background:var(--panel);}
+  tbody tr:last-child td{border-bottom:none;}
+  td.name{color:var(--text);font-weight:600;}
+  .vtag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:12px;white-space:nowrap;}
+  .vtag .dot{width:6px;height:6px;border-radius:50%;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+  .badge.found{background:rgba(56,198,168,.14);color:var(--mon);}
+  .badge.notfound{background:rgba(93,106,114,.18);color:var(--text-faint);}
+
+  /* ---------- profile cards ---------- */
+  .note{
+    border:1px dashed var(--border);
+    padding:14px 16px;
+    border-radius:var(--radius);
+    color:var(--text-dim);
+    font-size:13px;
+    margin-bottom:22px;
+    background:var(--panel);
+  }
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .pcard{border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);overflow:hidden;}
+  .pcard .top{padding:16px 18px 14px;border-bottom:1px solid var(--border);}
+  .pcard .top .name{font-size:16px;color:var(--text);font-weight:600;}
+  .pcard .top .site{font-size:11.5px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+  .pcard .body{padding:14px 18px 18px;font-size:13px;color:var(--text-dim);display:flex;flex-direction:column;gap:10px;}
+  .pcard .row .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-bottom:3px;}
+  .pcard .row .v{color:var(--text-dim);}
+
+  /* ---------- persona cards (clickable/expand) ---------- */
+  .persona{border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);margin-bottom:10px;overflow:hidden;}
+  .persona summary{
+    list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .persona summary::-webkit-details-marker{display:none;}
+  .persona summary .l{display:flex;align-items:center;gap:12px;}
+  .persona summary .l .name{font-size:15px;color:var(--text);font-weight:600;}
+  .persona summary .ind{font-family:'IBM Plex Mono',monospace;color:var(--text-faint);font-size:13px;transition:transform .2s;}
+  .persona[open] summary .ind{transform:rotate(45deg);}
+  .persona .content{padding:0 18px 18px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;font-size:13px;}
+  .persona .content .k{font-size:10.5px;text-transform:uppercase;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;margin-bottom:4px;}
+  .persona .content .v{color:var(--text-dim);}
+  .agg{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+  .agg.alta{background:rgba(217,112,79,.16);color:var(--danger);}
+  .agg.media{background:rgba(232,193,103,.16);color:var(--gold);}
+  .agg.baixa{background:rgba(56,198,168,.14);color:var(--mon);}
+  .agg.na{background:rgba(93,106,114,.18);color:var(--text-faint);}
+
+  /* ---------- gaps ---------- */
+  .gap-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .gap-box{border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;background:var(--panel);}
+  .gap-box h4{font-size:13px;text-transform:uppercase;letter-spacing:.04em;font-family:'IBM Plex Mono',monospace;margin-bottom:12px;}
+  .gap-box.sat h4{color:var(--danger);}
+  .gap-box.opp h4{color:var(--mon);}
+  .gap-box ul{margin:0;padding-left:18px;color:var(--text-dim);font-size:13.5px;display:flex;flex-direction:column;gap:8px;}
+
+  /* ---------- copy blocks ---------- */
+  .copy-block{border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);margin-bottom:16px;overflow:hidden;}
+  .copy-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--panel-2);}
+  .copy-head .vtag{font-size:11px;}
+  .copy-body{padding:20px;}
+  .copy-body .headline{font-family:'Fraunces',serif;font-size:19px;color:var(--text);margin-bottom:10px;line-height:1.35;}
+  .copy-body .sub{font-size:14px;color:var(--text-dim);margin-bottom:14px;padding-left:14px;border-left:2px solid var(--gold);}
+  .copy-body .rationale{font-size:12.5px;color:var(--text-faint);}
+  .copy-body .rationale b{color:var(--text-dim);font-weight:600;}
+
+  ::selection{background:var(--gold);color:#12181b;}
+
+  @media (max-width: 880px){
+    .shell{flex-direction:column;}
+    .side{width:100%;height:auto;position:relative;flex-direction:row;overflow-x:auto;padding:16px;gap:14px;}
+    .brand{display:none;}
+    nav{flex-direction:row;}
+    .side-foot{display:none;}
+    .main{padding:26px 18px 70px;}
+    .stat-grid,.vertical-summary,.gap-cols,.persona .content{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="kicker">Intelia · Growth</div>
+      <h1>Mapa Competitivo</h1>
+    </div>
+    <nav id="nav">
+      <button data-view="overview" class="active"><span class="n">01</span> Visão geral</button>
+      <button data-view="table"><span class="n">02</span> Tabela comparativa</button>
+      <button data-view="profiles"><span class="n">03</span> Perfis &amp; engajamento</button>
+      <button data-view="personas"><span class="n">04</span> Personas competitivas</button>
+      <button data-view="gaps"><span class="n">05</span> Gaps &amp; oportunidades</button>
+      <button data-view="copy"><span class="n">06</span> Recomendações de copy</button>
+    </nav>
+    <div class="side-foot">Monitoria de Qualidade, Converx Automotivo e Converx Seguros — mineração de concorrentes diretos no mercado brasileiro.</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- 01 OVERVIEW -->
+    <section id="view-overview" class="view active">
+      <div class="page-head">
+        <div class="kicker">01 · Visão geral</div>
+        <h2>Três nichos, um mesmo padrão de mercado</h2>
+        <p>20 concorrentes diretos mapeados em três frentes da Intelia: Monitoria de Qualidade (compliance e risco regulatório em atendimento), Converx no setor automotivo e Converx no setor de seguros.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="num">14/20</div><div class="lbl">com página oficial de LinkedIn localizada nesta busca</div></div>
+        <div class="stat"><div class="num">101K</div><div class="lbl">maior base de seguidores no LinkedIn (Zenvia)</div></div>
+        <div class="stat"><div class="num">6/20</div><div class="lbl">divulgam preço publicamente</div></div>
+        <div class="stat"><div class="num">0/20</div><div class="lbl">combinam atendimento + monitoria de qualidade no mesmo produto</div></div>
+      </div>
+
+      <div class="note" style="border-color:var(--danger);color:var(--text)">
+        <b style="color:var(--danger)">Achado de maior prioridade:</b> a BRIGGS (monitoria de qualidade) mantém páginas de comparação de SEO no próprio site — <span class="mono">usebriggs.com.br/comparar/briggs-vs-intelia</span> — disputando diretamente o nome "Intelia" em buscas, ao lado de comparações com 2CX, Gong, CallMiner e NICE CXone. É o único concorrente dos 20 mapeados que ataca a marca da Intelia por nome.
+      </div>
+
+      <div class="vertical-summary">
+        <div class="vcard">
+          <div class="bar" style="background:var(--mon)"></div>
+          <h3>Monitoria de Qualidade</h3>
+          <div class="sub">7 concorrentes diretos</div>
+          <ul>
+            <li><b>Ângulo dominante:</b> "avalie 100% das interações"</li>
+            <li><b>Mais ativo em conteúdo:</b> BRIGGS</li>
+            <li><b>Mais institucional:</b> Selbetti e DNK</li>
+          </ul>
+        </div>
+        <div class="vcard">
+          <div class="bar" style="background:var(--auto)"></div>
+          <h3>Automotivo</h3>
+          <div class="sub">7 concorrentes diretos</div>
+          <ul>
+            <li><b>Ângulo dominante:</b> qualificar lead e agendar test-drive no WhatsApp</li>
+            <li><b>Mais nichado:</b> SocialHub, Chatclipy, BossBot</li>
+            <li><b>Mais enterprise:</b> Zenvia e Take Blip</li>
+          </ul>
+        </div>
+        <div class="vcard">
+          <div class="bar" style="background:var(--seg)"></div>
+          <h3>Seguros</h3>
+          <div class="sub">6 concorrentes diretos</div>
+          <ul>
+            <li><b>Ângulo dominante:</b> automatizar cotação, sinistro e renovação no WhatsApp</li>
+            <li><b>Preço mais agressivo:</b> BotZz (R$199/mês)</li>
+            <li><b>Único a citar SUSEP:</b> SocialHub</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note">A Biblioteca de Anúncios da Meta e a do LinkedIn bloqueiam acesso automatizado direto (robots.txt) e não são indexadas por buscadores — por isso não foi possível abrir essas bibliotecas diretamente. Já as páginas oficiais de LinkedIn foram localizadas via busca para 14 dos 20 concorrentes (seguidores e cadência de posts na seção 03); para os 6 restantes, o nome da empresa colide com outras marcas não relacionadas ou não há página pública indexada, e isso ficou marcado como "não encontrado" em vez de estimado.</div>
+    </section>
+
+    <!-- 02 TABLE -->
+    <section id="view-table" class="view">
+      <div class="page-head">
+        <div class="kicker">02 · Tabela comparativa</div>
+        <h2>Todos os concorrentes, lado a lado</h2>
+        <p>Clique nos cabeçalhos para ordenar. Use os filtros para isolar um nicho.</p>
+      </div>
+      <div class="chips" id="filters-table"></div>
+      <div class="tbl-wrap">
+        <table id="main-table">
+          <thead>
+            <tr>
+              <th data-k="name">Concorrente</th>
+              <th data-k="verticalLabel">Nicho</th>
+              <th data-k="segment">Subvertical / segmento</th>
+              <th data-k="valueProp">Proposta de valor</th>
+              <th data-k="painPoint">Dor explorada</th>
+              <th data-k="funnel">Estágio de funil</th>
+              <th data-k="pricePublic">Preço público</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 03 PROFILES -->
+    <section id="view-profiles" class="view">
+      <div class="page-head">
+        <div class="kicker">03 · Perfis &amp; engajamento</div>
+        <h2>LinkedIn, volume de posts e anúncios</h2>
+        <p>Dados públicos coletados por concorrente. Onde a informação não estava disponível publicamente, mantivemos "não encontrado" em vez de estimar.</p>
+      </div>
+      <div class="chips" id="filters-profiles"></div>
+      <div class="grid-cards" id="profiles-grid"></div>
+    </section>
+
+    <!-- 04 PERSONAS -->
+    <section id="view-personas" class="view">
+      <div class="page-head">
+        <div class="kicker">04 · Personas competitivas</div>
+        <h2>Como cada concorrente se posiciona</h2>
+        <p>Clique em um card para abrir a ficha completa.</p>
+      </div>
+      <div class="chips" id="filters-personas"></div>
+      <div id="personas-list"></div>
+    </section>
+
+    <!-- 05 GAPS -->
+    <section id="view-gaps" class="view">
+      <div class="page-head">
+        <div class="kicker">05 · Gaps &amp; oportunidades</div>
+        <h2>O que está saturado vs. o que ninguém está dizendo</h2>
+        <p>Comparação por nicho entre os ângulos que o mercado já satura e os espaços em aberto.</p>
+      </div>
+
+      <section class="block">
+        <h3 class="h" style="color:var(--mon)">Monitoria de Qualidade</h3>
+        <div class="gap-cols">
+          <div class="gap-box sat"><h4>Saturado</h4><ul>
+            <li>"Avalie / analise 100% das interações" — presente em praticamente todos os 7 concorrentes (2clix, DNK, Selbetti, BRIGGS, Stalo, 2CX, DDCom).</li>
+            <li>Eliminar "zonas cegas" da amostragem manual de 2-5%.</li>
+            <li>Compliance mencionado de forma genérica, sem aprofundar o risco financeiro/regulatório concreto.</li>
+            <li><b>Disputa direta de marca:</b> a BRIGGS já criou uma página comparando-se explicitamente com a Intelia por nome — vale monitorar se ela aparece em buscas pelo termo "Intelia".</li>
+          </ul></div>
+          <div class="gap-box opp"><h4>Espaço em aberto</h4><ul>
+            <li>Nenhum concorrente combina, no mesmo produto, monitoria de qualidade com a própria plataforma de atendimento — é uma diferença estrutural da Intelia, não só de mensagem.</li>
+            <li>Framing de "risco evitado" (multa, processo, perda de contrato) em vez de "cobertura de interações" é praticamente inexistente.</li>
+            <li>Padronização de qualidade entre múltiplas unidades/lojas de uma mesma rede não aparece em nenhum concorrente.</li>
+          </ul></div>
+        </div>
+      </section>
+
+      <section class="block">
+        <h3 class="h" style="color:var(--auto)">Automotivo</h3>
+        <div class="gap-cols">
+          <div class="gap-box sat"><h4>Saturado</h4><ul>
+            <li>Qualificação de lead vindo de Webmotors/iCarros/OLX e agendamento de test-drive (SocialHub, Chatclipy, BossBot).</li>
+            <li>"Não perca leads" e resposta em menos de 5 segundos como promessa central.</li>
+            <li>Foco quase exclusivo em WhatsApp como canal único.</li>
+          </ul></div>
+          <div class="gap-box opp"><h4>Espaço em aberto</h4><ul>
+            <li>Pós-venda (revisão, recall, renovação de seguro do veículo) aparece pouco e de forma secundária em todos os 7 concorrentes.</li>
+            <li>Padrão de atendimento consistente entre lojas de uma mesma rede não é mencionado por nenhum concorrente nichado (SocialHub, Chatclipy, BossBot são mono-canal WhatsApp).</li>
+            <li>Nenhum concorrente do setor combina atendimento multicanal completo com monitoria de qualidade da conversa.</li>
+          </ul></div>
+        </div>
+      </section>
+
+      <section class="block">
+        <h3 class="h" style="color:var(--seg)">Seguros</h3>
+        <div class="gap-cols">
+          <div class="gap-box sat"><h4>Saturado</h4><ul>
+            <li>Automatizar cotação, sinistro e renovação no WhatsApp — presente em BotZz, Segura, Quiver Zap, SocialHub e Halk.</li>
+            <li>Setup rápido e baixa fricção técnica como argumento de venda (BotZz, Segura).</li>
+            <li>WhatsApp como canal único de automação.</li>
+          </ul></div>
+          <div class="gap-box opp"><h4>Espaço em aberto</h4><ul>
+            <li>Compliance SUSEP é citado por apenas 1 dos 6 concorrentes (SocialHub) — e mesmo assim sem detalhar auditoria da conversa.</li>
+            <li>Nenhum concorrente oferece evidência auditável de que a IA conduziu o atendimento automatizado de forma correta (risco de venda casada, informação incompleta sobre cobertura).</li>
+            <li>Combinação de automação de atendimento com monitoria de qualidade da própria interação automatizada não existe no nicho.</li>
+          </ul></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- 06 COPY -->
+    <section id="view-copy" class="view">
+      <div class="page-head">
+        <div class="kicker">06 · Recomendações de copy</div>
+        <h2>Direções originais por nicho</h2>
+        <p>Duas direções por nicho, construídas a partir dos gaps identificados — não são adaptações de copy de concorrente.</p>
+      </div>
+      <div id="copy-list"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const VERTICALS = {
+  monitoria:{label:'Monitoria de Qualidade', color:'var(--mon)', dim:'var(--mon-dim)'},
+  automotivo:{label:'Automotivo', color:'var(--auto)', dim:'var(--auto-dim)'},
+  seguros:{label:'Seguros', color:'var(--seg)', dim:'var(--seg-dim)'}
+};
+
+const DATA = [
+// ---------------- MONITORIA DE QUALIDADE ----------------
+{id:'2clix', name:'2clix', vertical:'monitoria', site:'2clix.com.br',
+ valueProp:'Plataforma de monitoria de qualidade estruturada e potencializada por IA, para tratar qualidade como processo estratégico, não operacional.',
+ segment:'Atendimento multissetorial (voz, chat, e-mail)',
+ painPoint:'Planilhas, avaliações isoladas e feedback tardio não acompanham o ritmo de operações modernas.',
+ proof:'não encontrado', cta:'Ver demonstração', funnel:'meio', pricePublic:'não',
+ linkedin:'linkedin.com/company/2clixtecnologia — 4.706 seguidores', posts:'Ativo; posts institucionais e de premiações (ex: Conarec 2023, categoria Sistema de Monitoria de Agentes)', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Gestores de qualidade e CX que ainda avaliam por amostragem manual.',
+ diferencial:'Centraliza voz, chat e e-mail em uma única plataforma de monitoria.',
+ tom:'consultivo / educativo', agressividade:'na'},
+
+{id:'dnk', name:'DNK QualityMonitoring', vertical:'monitoria', site:'dnkinfotelecom.com.br',
+ valueProp:'Solução que transforma a monitoria de call centers, substituindo amostragem manual por avaliação de 100% das interações com IA.',
+ segment:'Call centers em geral, com foco em conformidade LGPD/Anatel',
+ painPoint:'Processo tradicional avalia cerca de 2% das chamadas, deixando 98% das interações sem qualquer avaliação.',
+ proof:'Premiada no XXI Prêmio Consumidor Moderno e no Prêmio Cliente SA 2020', cta:'não encontrado', funnel:'topo', pricePublic:'não',
+ linkedin:'linkedin.com/company/dnk-infotelecom — 9.197 seguidores', posts:'Ativo; cadência aproximadamente semanal sobre IA, CX e compliance/LGPD', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Diretores de operação de call center em setores regulados.',
+ diferencial:'Histórico de premiações de mercado e atuação omnichannel com foco declarado em LGPD.',
+ tom:'institucional', agressividade:'baixa'},
+
+{id:'selbetti', name:'Selbetti Customer Experience', vertical:'monitoria', site:'selbetti.com.br',
+ valueProp:'Monitoria de Qualidade com IA que analisa até 100% das interações de voz, chat e texto, com conformidade LGPD.',
+ segment:'Telecom, Financeiro, Saúde e Varejo',
+ painPoint:'Falta de visibilidade completa das interações cria zonas cegas na jornada do cliente.',
+ proof:'Unidade da Selbetti Tecnologia, maior One-Stop-Tech do Brasil, quase 50 anos e mais de 2.200 profissionais', cta:'Fale com um consultor', funnel:'meio/fundo', pricePublic:'não',
+ linkedin:'linkedin.com/company/selbettioficial (marca-mãe Selbetti Tecnologia) — 33.646 seguidores', posts:'Muito ativo; eventos, aquisições (ex: MD2 Consultoria) e cases, vários posts/mês. Página própria da unidade Customer Experience não encontrada separadamente.', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Gestores e diretores de Atendimento, CX, Qualidade e Operações.',
+ diferencial:'Robustez de grupo consolidado, com integrações via API a CRM e PABX.',
+ tom:'institucional / técnico', agressividade:'media'},
+
+{id:'briggs', name:'BRIGGS', vertical:'monitoria', site:'usebriggs.com.br',
+ valueProp:'Speech analytics e monitoria manual na mesma plataforma: 100% das interações avaliadas por IA, com feedback ancorado ao trecho, coaching e gamificação.',
+ segment:'Call center brasileiro em geral',
+ painPoint:'Supervisor amostrava 2 a 3% das chamadas manualmente, em planilha, com cobertura mínima e sem rastreabilidade.',
+ proof:'Mais de 1 milhão de interações analisadas e mais de 500 milhões de palavras transcritas em português', cta:'Ver o BRIGGS na minha operação / Baixar guia da ANS 2026', funnel:'topo/meio (forte em conteúdo)', pricePublic:'não',
+ linkedin:'não encontrado (página oficial não localizada nesta busca)', posts:'não encontrado', ads:'ALERTA: mantém páginas de SEO "BRIGGS vs Intelia" e "BRIGGS vs 2CX" no próprio site (usebriggs.com.br/comparar), competindo diretamente pelo nome da Intelia e de outros 17 concorrentes (incl. Gong, CallMiner, NICE CXone)', adTop:'não encontrado',
+ personaAlvo:'Supervisores e gestores de qualidade que já monitoram e querem evoluir para IA.',
+ diferencial:'Não obriga a escolher entre monitoria manual e IA — combina as duas na mesma plataforma, com onboarding assistido por IA e gamificação. É o único concorrente mapeado que disputa SEO citando a Intelia pelo nome.',
+ tom:'direto / didático / orientado a dado', agressividade:'media'},
+
+{id:'stalo', name:'Stalo.ai', vertical:'monitoria', site:'stalo.ai',
+ valueProp:'Treine sua própria IA para monitorar 100% das interações e gerar insights automáticos, com mais de 40 integrações nativas.',
+ segment:'Atendimento em geral, incluindo call center',
+ painPoint:'"Diga adeus às avaliações manuais" — foco em eliminar o trabalho de leitura interação a interação.',
+ proof:'Depoimentos de clientes citados no site, sem números públicos de volume', cta:'Fale conosco e tenha insights aplicáveis em uma semana', funnel:'meio', pricePublic:'não',
+ linkedin:'não encontrado (nome genérico "Stalo" colide com outras empresas não relacionadas nos resultados de busca)', posts:'não encontrado', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Times de atendimento que já buscam uma ferramenta de IA configurável.',
+ diferencial:'Modelos de análise personalizáveis e dashboards com a marca do cliente.',
+ tom:'direto / foco em agilidade', agressividade:'na'},
+
+{id:'2cx', name:'2CX', vertical:'monitoria', site:'2cx.com.br',
+ valueProp:'Automação do processo de avaliação por IA, cobrindo 100% das interações de voz e texto — "sua operação com a qualidade das grandes".',
+ segment:'Call center / CX em geral',
+ painPoint:'Cada avaliador humano cobre 20 a 25 operadores simultâneos, nunca 100% das chamadas de um turno.',
+ proof:'Resultado da fusão entre Callflex e VoxAge; conteúdo assinado por especialista em qualidade da própria empresa', cta:'não encontrado', funnel:'meio', pricePublic:'não',
+ linkedin:'linkedin.com/company/2cxoficial — 1.612 seguidores', posts:'Ativo; posts de lançamento de produto (Orquestrador Omne, Voz IA)', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Gestores de qualidade de operações de contact center.',
+ diferencial:'Explicita a combinação de speech analytics (voz) e text analytics (mensageria) como duas camadas do mesmo produto.',
+ tom:'técnico, com voz de especialista', agressividade:'baixa'},
+
+{id:'ddcom', name:'DDCom Systems', vertical:'monitoria', site:'ddcomsystems.com.br',
+ valueProp:'Monitore 100% das interações de voz ou digital — humanas e de bots — com inteligência artificial.',
+ segment:'Call center / CX, incluindo operações com bots',
+ painPoint:'não encontrado (comunicação institucional curta, sem dor explícita)',
+ proof:'Empresa cita aumento de até 37% nos scores de qualidade e saltos no NPS; atua desde 1992', cta:'não encontrado', funnel:'topo', pricePublic:'não',
+ linkedin:'linkedin.com/company/ddcomsystems — 4.316 seguidores', posts:'Ativo; presença em eventos do setor (estande no CONAREC 2026), posts técnicos frequentes', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Operações que já combinam atendimento humano e bots.',
+ diferencial:'Único a destacar explicitamente a cobertura de interações de bots, além das humanas.',
+ tom:'institucional', agressividade:'baixa'},
+
+// ---------------- AUTOMOTIVO ----------------
+{id:'zenvia', name:'Zenvia (Customer Cloud)', vertical:'automotivo', site:'zenvia.com',
+ valueProp:'Plataforma brasileira que unifica atendimento multicanal, campanhas e agentes de IA sobre SMS, WhatsApp, e-mail e RCS.',
+ segment:'Multissetorial — automotivo como um dos verticais atendidos',
+ painPoint:'não específico do automotivo',
+ proof:'Empresa brasileira consolidada, já negociou ações na Nasdaq entre 2021 e 2026; clientes citados incluem Safra, Bradesco, Magazine Luiza e CVC', cta:'Planos de R$0 (Starter) a Enterprise sob consulta', funnel:'fundo (páginas de preço)', pricePublic:'sim',
+ linkedin:'linkedin.com/company/zenvia-inc — cerca de 101 mil seguidores', posts:'Muito ativo; cases de clientes (ex: agente autônomo da Light com 62% de retenção em 3 meses), evento próprio recorrente (Zenvia Day), múltiplos posts/semana', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Empresas médias/grandes com múltiplos canais de atendimento e vendas.',
+ diferencial:'Preço público com plano gratuito de entrada — incomum entre players enterprise do setor.',
+ tom:'comercial direto, comparativo', agressividade:'media'},
+
+{id:'takeblip', name:'Take Blip (Blip)', vertical:'automotivo', site:'blip.ai',
+ valueProp:'Chatbots e automação conversacional via WhatsApp Business API, robustos, voltados a grandes contas.',
+ segment:'Grandes contas de varejo, bancos e operadoras — automotivo como um vertical',
+ painPoint:'não específico do automotivo',
+ proof:'Mais de uma década de operação; listada entre as 10 startups brasileiras de elite prontas para captação de até US$100 milhões em 2026, segundo Forbes Brasil', cta:'Contratação consultiva, mensalidade mínima acima de R$1.000', funnel:'fundo (vendas consultivas)', pricePublic:'não',
+ linkedin:'linkedin.com/company/blipbr — entre 127 mil e 198 mil seguidores (variação entre consultas)', posts:'Muito ativo; conteúdo sobre IA conversacional e cobertura de imprensa própria', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Empresas com time de atendimento estruturado e alto volume de conversas.',
+ diferencial:'Robustez e histórico longo como pioneira do WhatsApp Business API no Brasil.',
+ tom:'institucional / enterprise', agressividade:'na'},
+
+{id:'socialhub-auto', name:'SocialHub (automotivo)', vertical:'automotivo', site:'socialhub.pro',
+ valueProp:'Multiatendimento no mesmo número de WhatsApp para concessionárias, com distribuição inteligente de leads vindos de Webmotors, iCarros e OLX.',
+ segment:'Concessionárias de pequeno a grande porte',
+ painPoint:'Leads esfriam por falta de resposta rápida; vendedor de salão sobrecarregado com qualificação básica.',
+ proof:'Integrações citadas com DealerNet e Linx Seta; empresa afirma ter mais de 15 mil empresas ativas no Brasil (todos os segmentos)', cta:'Fale com a SocialHub', funnel:'meio (blog educativo por subvertical)', pricePublic:'sim (a partir de R$99-299/mês)',
+ linkedin:'linkedin.com/company/socialhub-pro (oficial); página alternativa "social2b" com 3.360 seguidores', posts:'Ativo', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Gerentes comerciais e de pós-venda de concessionária.',
+ diferencial:'Integração nativa com sistemas do setor automotivo (DealerNet, Linx Seta) e com portais de venda de veículos — dentro de uma plataforma que é, na verdade, genérica para PMEs de qualquer setor (a concessionária é um dos vários nichos de conteúdo/SEO da empresa, não o produto principal).',
+ tom:'consultivo, escrito para a rotina da concessionária', agressividade:'na'},
+
+{id:'chatclipy', name:'Chatclipy', vertical:'automotivo', site:'chatclipy.com.br',
+ valueProp:'CRM integrado ao WhatsApp com funil de vendas automotivo, follow-up automático e integração com os principais portais de venda de veículos.',
+ segment:'Concessionárias e revendas',
+ painPoint:'"Não deixe leads esfriarem no WhatsApp."',
+ proof:'Cita 35% de aumento na taxa de conversão com follow-up estruturado; atende concessionárias autorizadas (VW, Toyota, Fiat, Chevrolet, Honda, Ford) e revendas multimarca', cta:'Fale conosco', funnel:'meio/fundo', pricePublic:'não',
+ linkedin:'não encontrado', posts:'não encontrado', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Equipe comercial de concessionária.',
+ diferencial:'Follow-up automático pós-venda (revisões, campanhas sazonais), além da qualificação inicial.',
+ tom:'direto, orientado a vendas', agressividade:'na'},
+
+{id:'bossbot', name:'BossBot', vertical:'automotivo', site:'bossbot.uk',
+ valueProp:'Plataforma global genérica para pequenos negócios (auto-resposta WhatsApp/Telegram, digitalização de notas, CRM) que publica conteúdo em português mirando especificamente concessionárias brasileiras como nicho de SEO.',
+ segment:'Pequenos negócios em geral — concessionárias são um nicho de conteúdo, não o produto principal',
+ painPoint:'Dúvidas pós-venda e baixa avaliação de atendimento por falta de acompanhamento (no artigo voltado ao nicho automotivo).',
+ proof:'Planos com preço público (a partir de US$19/mês); empresa sediada no Reino Unido (domínio .uk), não é brasileira', cta:'Comparação direta com Take Blip e Zenvia no próprio conteúdo em português', funnel:'fundo (conteúdo comparativo)', pricePublic:'sim',
+ linkedin:'não encontrado', posts:'não encontrado', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Pequenos negócios (não necessariamente concessionárias) buscando alternativa mais barata que players enterprise.',
+ diferencial:'Conteúdo em português profundo sobre burocracia automotiva local (DETRAN, RENAVAM, CRV, CRLV) como estratégia de SEO, apesar de ser uma plataforma genérica e não brasileira.',
+ tom:'comparativo, direto ao bolso', agressividade:'media'},
+
+{id:'chatpro', name:'chatPro', vertical:'automotivo', site:'chatpro.com.br',
+ valueProp:'Plataforma de atendimento via WhatsApp Business/Cloud API com múltiplos atendentes e chatbot com IA integrado ao ChatGPT.',
+ segment:'Multissetorial — usada por operações de porte médio, inclusive automotivo',
+ painPoint:'não específico do automotivo',
+ proof:'Depoimentos de clientes com equipes de até 40 operadores; fundada em 2018, sediada em Goiânia', cta:'Planos por franquia de atendimentos (500 a 3.000+/mês)', funnel:'fundo (preços públicos)', pricePublic:'sim',
+ linkedin:'linkedin.com/company/chatpro-oficial — cerca de 190 seguidores (baixa atividade, majoritariamente posts de vagas)', posts:'Baixo volume', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Operações de atendimento de porte médio que buscam WhatsApp multiatendente.',
+ diferencial:'Precificação por franquia de atendimentos e IA via chave própria (BYOK).',
+ tom:'direto, apoiado em prova social', agressividade:'na'},
+
+{id:'letalk', name:'Letalk', vertical:'automotivo', site:'letalk.com.br',
+ valueProp:'Centraliza atendimento no WhatsApp, automatiza conversas e usa IA para qualificar leads e vender mais, integrado a CRM.',
+ segment:'Vendas em geral, com uso também por concessionárias que buscam CRM + WhatsApp',
+ painPoint:'Recuperação de boletos, carrinhos abandonados e pagamentos com erro perdidos no funil.',
+ proof:'Parceria oficial com RD Station; case real com concessionária Chevrolet (Balneário Camboriú e Itajaí/SC) citado no próprio site', cta:'Conheça a plataforma', funnel:'meio/fundo', pricePublic:'não',
+ linkedin:'linkedin.com/company/letalk — 2.342 seguidores', posts:'Ativo; posts sazonais e comerciais', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Times comerciais que já usam CRM e querem automação de WhatsApp acoplada.',
+ diferencial:'Automação de cobrança e recuperação financeira via WhatsApp, integrada nativamente a CRMs.',
+ tom:'comercial, focado em conversão', agressividade:'na'},
+
+// ---------------- SEGUROS ----------------
+{id:'botzz', name:'BotZz (Vox Soluções)', vertical:'seguros', site:'segs.com.br (release)',
+ valueProp:'IA generativa que atende, vende e agenda no WhatsApp, treinada com os próprios documentos do negócio (PDF, Excel, site) — produto genérico para PMEs, com o mesmo lançamento divulgado em paralelo para clínicas, escritórios e lojas, além de corretoras.',
+ segment:'PMEs em geral; corretoras e seguradoras são um dos públicos de divulgação, via imprensa especializada do setor (SEGS, Revista Cobertura, Agência Seg News)',
+ painPoint:'"Esse tipo de solução esteve disponível só para quem tinha orçamento de grande empresa."',
+ proof:'Implementação em até 20 segundos após a contratação; Vox Soluções atua desde 2006 em gravação de voz e speech analytics para centrais de relacionamento', cta:'R$199/mês (R$159/mês no anual), 7 dias grátis, sem cartão de crédito', funnel:'fundo (preço e trial claros)', pricePublic:'sim',
+ linkedin:'não encontrado (página própria da BotZz não localizada; a marca-mãe Vox Soluções em TI tem página distinta e de outro foco)', posts:'não encontrado', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Corretor independente ou pequena corretora sem equipe técnica.',
+ diferencial:'Democratiza acesso via preço baixo e setup extremamente rápido; usa PR sindicado em portais de nicho (seguros, saúde etc.) em vez de ads pagos como canal de aquisição.',
+ tom:'acessível, sem rodeios', agressividade:'media'},
+
+{id:'segura', name:'Segura (Conversas / Helena)', vertical:'seguros', site:'segura (via imprensa)',
+ valueProp:'Camada de IA para estruturar atendimento, automatizar interações e organizar a operação da corretora dentro do WhatsApp.',
+ segment:'Corretoras individuais e equipes maiores',
+ painPoint:'Comunicação com cliente, seguradora e corretor já acontece via WhatsApp, mas sem organização operacional integrada.',
+ proof:'Única empresa do setor de seguros selecionada para o WhatsApp AI Startups Hub da Meta; captou R$45 milhões em rodada seed colidera por a16z e Kaszek', cta:'Configure um número oficial no Portal da Segura', funnel:'meio (institucional / imprensa)', pricePublic:'não',
+ linkedin:'linkedin.com/company/seguracorretech — 3.979 seguidores', posts:'Ativo; participação em eventos do setor (SincorCAST, Web Summit Rio) e em hackathon da Anthropic', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Corretoras que já têm volume de conversas mas processo desorganizado.',
+ diferencial:'Selo de credibilidade da Meta (único do setor seguros no programa) e foco em estruturar a operação, não só automatizar respostas.',
+ tom:'institucional, apoiado em imprensa especializada', agressividade:'na'},
+
+{id:'quiverzap', name:'Quiver Zap (Dimensa)', vertical:'seguros', site:'segs.com.br (release)',
+ valueProp:'Chatbots por fluxo (cotação, sinistro, renovação) com distribuição automática de conversas e envio de propostas integrado ao Quiver Mult.',
+ segment:'Corretoras já dentro do ecossistema Dimensa/Quiver',
+ painPoint:'"WhatsApp Business tradicional é uma ferramenta limitada."',
+ proof:'Pertence à Dimensa (joint venture entre TOTVS e a bolsa B3); mais de 30 anos de mercado, 4,9 mil clientes ativos e 36% do processamento total de prêmios de seguros do Brasil (~R$41 bi/ano)', cta:'Conteúdo em portal especializado do setor (SEGS)', funnel:'meio', pricePublic:'não',
+ linkedin:'linkedin.com/company/quiver-solucoes — 12.361 seguidores', posts:'Ativo; conteúdo institucional sobre a integração à Dimensa e webinars', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Corretoras que já são clientes do ecossistema Dimensa.',
+ diferencial:'Integração nativa com o sistema de gestão (Quiver Mult) que a corretora já usa.',
+ tom:'técnico, integrado ao ecossistema existente', agressividade:'na'},
+
+{id:'socialhub-seg', name:'SocialHub (seguros)', vertical:'seguros', site:'socialhub.pro',
+ valueProp:'Solução para corretoras de seguros enterprise que buscam escala, eficiência e compliance SUSEP através do WhatsApp e IA.',
+ segment:'Corretoras enterprise com 5.000+ clientes na carteira',
+ painPoint:'Processos manuais, planilhas desatualizadas e follow-ups reativos perdem dinheiro e oportunidades.',
+ proof:'Empresa afirma ter mais de 15 mil empresas ativas no Brasil (todos os segmentos, não exclusivo de seguros)', cta:'Fale com a SocialHub', funnel:'meio (blog educativo)', pricePublic:'sim (a partir de R$99-299/mês)',
+ linkedin:'linkedin.com/company/socialhub-pro (oficial); página alternativa "social2b" com 3.360 seguidores', posts:'Ativo', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Corretoras grandes com carteira massiva de clientes.',
+ diferencial:'Menciona compliance SUSEP explicitamente — único concorrente do nicho a fazer isso.',
+ tom:'consultivo, foco em escala e compliance', agressividade:'na'},
+
+{id:'halk', name:'Halk', vertical:'seguros', site:'halk.io',
+ valueProp:'Plataforma SaaS no-code genérica para criar agentes de IA "para qualquer tipo de negócio" — seguros é um de vários nichos cobertos por artigos de blog (ao lado de e-commerce, agências de marketing, financeiro), não o foco central do produto.',
+ segment:'Qualquer negócio; corretoras de seguros aparecem como um público-alvo de conteúdo, não como segmento dedicado',
+ painPoint:'No artigo voltado a seguros: "capacidade de atendimento, e não falta de demanda, é o problema central do setor."',
+ proof:'Cita dado de mercado: R$382 bilhões movimentados pelo setor de seguros em 2024 (CNseg), mas isso aparece em apenas um dos vários guias verticais do blog', cta:'Começar gratuitamente', funnel:'topo/meio (SEO multi-vertical)', pricePublic:'não',
+ linkedin:'não encontrado', posts:'não encontrado', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Pequenas corretoras que sentem gargalo de atendimento humano — dentro de um público bem mais amplo que a empresa atende.',
+ diferencial:'Detecção de tom emocional para escalar sinistros urgentes a um humano automaticamente (feature genérica aplicada ao caso de seguros).',
+ tom:'consultivo, fundamentado em dado de mercado', agressividade:'baixa'},
+
+{id:'sleekflow', name:'SleekFlow (caso Silverguard)', vertical:'seguros', site:'sleekflow.io',
+ valueProp:'Chatbot omnichannel (WhatsApp, Instagram, chat do site) com cotação personalizada em tempo real, em uma única caixa de entrada.',
+ segment:'Usado por players locais como a Silverguard (proteção financeira/digital)',
+ painPoint:'não específico do mercado brasileiro',
+ proof:'Case público com a Silverguard, empresa brasileira; sede em Singapura/Hong Kong, com operação declarada no Brasil; captou US$23,5 milhões de fundos como Tiger Global e Atinum Investment', cta:'não encontrado', funnel:'topo (conteúdo global adaptado ao PT-BR)', pricePublic:'não',
+ linkedin:'linkedin.com/company/sleekflow — 48.652 seguidores (página global)', posts:'Ativo globalmente; SleekFlow Brasil participou do WhatsApp Partner Summit LatAm 2026', ads:'não encontrado', adTop:'não encontrado',
+ personaAlvo:'Corretoras e insurtechs já buscando uma plataforma omnichannel global.',
+ diferencial:'Alcance omnichannel além do WhatsApp (Instagram, webchat) em uma única inbox.',
+ tom:'institucional, tradução de conteúdo global', agressividade:'na'},
+];
+
+DATA.forEach(d=>{ d.verticalLabel = VERTICALS[d.vertical].label; });
+
+const COPY = [
+ {vertical:'monitoria', headline:'Pare de amostrar 2%. Comece a blindar 100% do seu compliance.',
+  sub:'Enquanto o mercado vende “monitorar tudo”, mostramos o risco regulatório escondido nos 98% que ninguém ouve — antes que ele vire multa ou processo.',
+  rationale:'Todos os 7 concorrentes de monitoria já usam “100% das interações” como promessa central. Deslocar o eixo de <b>cobertura</b> para <b>risco evitado</b> é um ângulo que nenhum deles ocupa hoje.'},
+ {vertical:'monitoria', headline:'Sua central de atendimento e sua área de qualidade não deveriam usar sistemas diferentes.',
+  sub:'A Intelia une atendimento e monitoria de qualidade na mesma plataforma — o único combo do mercado brasileiro que fecha esse ciclo sem integração feita às pressas.',
+  rationale:'Nenhum dos 7 concorrentes mapeados combina atendimento e monitoria no mesmo produto. É diferencial estrutural, não apenas de mensagem.'},
+ {vertical:'automotivo', headline:'Test-drive agendado é fácil. Reter o cliente na revisão dos 10 mil km é o jogo de verdade.',
+  sub:'Enquanto a concorrência foca em fechar a venda pelo WhatsApp, cobrimos pré-venda, venda e pós-venda — revisão, recall e renovação — em um só canal monitorado.',
+  rationale:'SocialHub, Chatclipy e BossBot concentram a mensagem em geração e qualificação de lead de venda; pós-venda aparece pouco e de forma secundária nos 7 concorrentes automotivos.'},
+ {vertical:'automotivo', headline:'Concessionária boa não é só rápida no WhatsApp. É consistente em todas as lojas da rede.',
+  sub:'Com monitoria de qualidade integrada, garantimos que toda unidade da rede atenda no mesmo padrão — não só a loja que mais vende.',
+  rationale:'Nenhum concorrente automotivo pesquisado menciona padronização entre lojas de uma mesma rede — conecta diretamente com a força de Monitoria da Intelia.'},
+ {vertical:'seguros', headline:'Sinistro não é cotação. Merece um fluxo — e uma prova — diferente.',
+  sub:'Registramos e auditamos cada etapa do sinistro no WhatsApp, dando à corretora evidência de conformidade SUSEP, não só velocidade de resposta.',
+  rationale:'Dos 6 concorrentes de seguros, só a SocialHub cita SUSEP, e mesmo assim sem detalhar auditoria da conversa — espaço aberto para quem já tem DNA de compliance via Monitoria.'},
+ {vertical:'seguros', headline:'Automatizar o atendimento é o primeiro passo. Provar que ele foi bem feito é o segundo.',
+  sub:'Corretoras que crescem com IA no WhatsApp também precisam mostrar, para a seguradora e para o regulador, que a IA atendeu direito.',
+  rationale:'BotZz, Segura e Halk vendem automação da conversa; nenhum vende auditoria dessa mesma conversa — é a ponte natural entre Converx e Monitoria de Qualidade.'},
+];
+
+// ---------- render helpers ----------
+function vtag(vkey){
+  const v = VERTICALS[vkey];
+  return `<span class="vtag" style="background:${v.dim};color:${v.color}"><span class="dot" style="background:${v.color}"></span>${v.label}</span>`;
+}
+function foundBadge(val){
+  const isNF = /não encontrado/i.test(val);
+  return `<span class="badge ${isNF?'notfound':'found'}">${val}</span>`;
+}
+function aggClass(a){
+  return {alta:'alta',media:'media',baixa:'baixa',na:'na'}[a] || 'na';
+}
+function aggLabel(a){
+  return {alta:'Alta',media:'Média',baixa:'Baixa',na:'Não identificado'}[a] || 'Não identificado';
+}
+
+let activeFilter = { table:'all', profiles:'all', personas:'all' };
+
+function buildChips(containerId, group){
+  const el = document.getElementById(containerId);
+  const opts = [{k:'all',label:'Todos'}, ...Object.entries(VERTICALS).map(([k,v])=>({k,label:v.label,color:v.color}))];
+  el.innerHTML = opts.map(o=>`<button class="chip ${activeFilter[group]===o.k?'active':''}" data-k="${o.k}">${o.color?`<span class="dot" style="background:${o.color}"></span>`:''}${o.label}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeFilter[group] = btn.dataset.k;
+      if(group==='table') renderTable();
+      if(group==='profiles') renderProfiles();
+      if(group==='personas') renderPersonas();
+      buildChips(containerId, group);
+    });
+  });
+}
+
+let sortState = {k:'name', dir:1};
+function renderTable(){
+  const rows = DATA.filter(d=> activeFilter.table==='all' || d.vertical===activeFilter.table)
+    .sort((a,b)=>{
+      const av=(a[sortState.k]||'').toString(); const bv=(b[sortState.k]||'').toString();
+      return av.localeCompare(bv,'pt-BR') * sortState.dir;
+    });
+  document.getElementById('table-body').innerHTML = rows.map(d=>`
+    <tr>
+      <td class="name">${d.name}</td>
+      <td>${vtag(d.vertical)}</td>
+      <td>${d.segment}</td>
+      <td>${d.valueProp}</td>
+      <td>${d.painPoint}</td>
+      <td>${d.funnel}</td>
+      <td>${d.pricePublic==='sim' ? '<span class="badge found">sim</span>' : '<span class="badge notfound">não</span>'}</td>
+    </tr>`).join('');
+}
+
+function renderProfiles(){
+  const cards = DATA.filter(d=> activeFilter.profiles==='all' || d.vertical===activeFilter.profiles);
+  document.getElementById('profiles-grid').innerHTML = cards.map(d=>`
+    <div class="pcard">
+      <div class="top">
+        <div class="name">${d.name}</div>
+        <div class="site">${d.site}</div>
+        <div style="margin-top:8px">${vtag(d.vertical)}</div>
+      </div>
+      <div class="body">
+        <div class="row"><div class="k">LinkedIn (página oficial)</div><div class="v">${foundBadge(d.linkedin)}</div></div>
+        <div class="row"><div class="k">Volume de posts</div><div class="v">${foundBadge(d.posts)}</div></div>
+        <div class="row"><div class="k">Anúncios (Meta / LinkedIn Ad Library)</div><div class="v">${foundBadge(d.ads)}</div></div>
+        <div class="row"><div class="k">Anúncio de maior engajamento</div><div class="v">${foundBadge(d.adTop)}</div></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderPersonas(){
+  const items = DATA.filter(d=> activeFilter.personas==='all' || d.vertical===activeFilter.personas);
+  document.getElementById('personas-list').innerHTML = items.map(d=>`
+    <details class="persona">
+      <summary>
+        <div class="l"><span class="name">${d.name}</span>${vtag(d.vertical)}<span class="agg ${aggClass(d.agressividade)}">agressividade em ads: ${aggLabel(d.agressividade)}</span></div>
+        <span class="ind">+</span>
+      </summary>
+      <div class="content">
+        <div><div class="k">Persona-alvo</div><div class="v">${d.personaAlvo}</div></div>
+        <div><div class="k">Dor explorada</div><div class="v">${d.painPoint}</div></div>
+        <div><div class="k">Diferencial afirmado</div><div class="v">${d.diferencial}</div></div>
+        <div><div class="k">Tom de voz</div><div class="v">${d.tom}</div></div>
+      </div>
+    </details>`).join('');
+}
+
+function renderCopy(){
+  document.getElementById('copy-list').innerHTML = COPY.map(c=>`
+    <div class="copy-block">
+      <div class="copy-head">${vtag(c.vertical)}</div>
+      <div class="copy-body">
+        <div class="headline">${c.headline}</div>
+        <div class="sub">${c.sub}</div>
+        <div class="rationale">${c.rationale}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ---------- nav ----------
+document.getElementById('nav').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+btn.dataset.view).classList.add('active');
+});
+
+document.querySelectorAll('#main-table thead th').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const k = th.dataset.k;
+    sortState.dir = (sortState.k===k) ? sortState.dir*-1 : 1;
+    sortState.k = k;
+    renderTable();
+  });
+});
+
+buildChips('filters-table','table');
+buildChips('filters-profiles','profiles');
+buildChips('filters-personas','personas');
+renderTable();
+renderProfiles();
+renderPersonas();
+renderCopy();
+</script>
+</body>
+</html>
